@@ -4,7 +4,13 @@ import Flash from './Flash.js';
 import Inspector from './Inspector.js';
 import Module from './Module.js';
 import Store from './Store.js';
-import {$, $$, toTag, ajax, entryFromKey} from './util.js';
+import {$, $$, tagElement, ajax, entryFromKey, report} from './util.js';
+
+// HACK: So we can call closest() on event targets without having to worry about
+// whether or not the user clicked on an Element v. Text Node
+Text.prototype.closest = function(...args) {
+  return this.parentNode.closest && this.parentNode.closest(...args);
+};
 
 // Used to feature-detect that es6 modules are loading
 window.indexLoaded = true;
@@ -67,7 +73,7 @@ async function graph(module) {
 
   const FONT='Roboto Condensed, sans-serif';
 
-  // Build us a directed graph document in GraphViz notation
+  // Compose directed graph document (GraphViz notation)
   const nodes = ['\n// Nodes & per-node styling'];
   const edges = ['\n// Edges & per-edge styling'];
 
@@ -100,7 +106,7 @@ async function graph(module) {
     return Promise.resolve();
   }
 
-  $('#load').style.display = 'block';
+  $('#progress').style.display = 'block';
   let modules = module;
   if (typeof(module) == 'string') {
     modules = module.split(/[, ]+/);
@@ -120,7 +126,7 @@ async function graph(module) {
     modules = [module];
   }
   await render(modules);
-  $('#load').style.display = 'none';
+  $('#progress').style.display = 'none';
 
   const title = modules.map(m => m.package.name).join();
   const dotDoc = [
@@ -164,18 +170,25 @@ async function graph(module) {
   $('#graph').appendChild(svg);
   zoom(1);
 
-  $$('.loader').forEach(el => el.remove());
+  $$('.progress').forEach(el => el.remove());
   $$('g.node').forEach(async el => {
     const key = $(el, 'text').textContent;
     if (!key) return;
+
+    const moduleName = key.replace(/@[\d.]+$/, '');
+    if (moduleName) {
+      tagElement(el, 'module', moduleName);
+    } else {
+      report.warn(Error(`Bad replace: ${key}`));
+    }
+
     const m = await Store.getModule(...entryFromKey(key));
     const pkg = m && m.package;
-    el.classList.add(toTag('module', key.replace(/@.*/, '')));
     if (pkg.stub) {
       el.classList.add('stub');
     } else {
-      pkg.maintainers.forEach(m => el.classList.add(toTag('maintainer', m.name)));
-      el.classList.add(toTag('license', m.licenseString || 'Unspecified'));
+      tagElement(el, 'maintainer', ...pkg.maintainers.map(m => m.name));
+      tagElement(el, 'license', m.licenseString || 'Unspecified');
     }
   });
 
@@ -188,7 +201,12 @@ async function graph(module) {
   $('title').innerText = `NPMGraph - ${names}`;
 }
 
-window.onpopstate = function() {
+window.onpopstate = function(event) {
+  const state = event && event.state;
+  if (state && state.module) {
+    graph(state.module);
+    return;
+  }
   const target = /q=([^&]+)/.test(location.search) && RegExp.$1;
   if (target) graph(decodeURIComponent(target) || 'request');
 };
@@ -246,6 +264,7 @@ onload = function() {
       });
 
       const module = new Module(JSON.parse(content));
+      history.pushState({module}, null, `${location.pathname}?upload=${file.name}`);
       graph(module);
     },
 
@@ -255,10 +274,6 @@ onload = function() {
     },
 
     ondragleave: ev => {
-      // Going to child != leaving
-      const el = ev.relatedTarget;
-      if (!el && el.closest('#drop_target')) return;
-
       ev.currentTarget.classList.remove('drag');
       ev.preventDefault();
     }

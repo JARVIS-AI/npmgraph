@@ -1,7 +1,9 @@
 /* global bugsnagClient */
 
-export const reportError = err => {
-  bugsnagClient.notify(err);
+export const report = {
+  error: err => bugsnagClient.notify(err, {severity: 'error'}),
+  warn: err => bugsnagClient.notify(err, {severity: 'warn'}),
+  info: err => bugsnagClient.notify(err, {severity: 'info'}),
 };
 
 /**
@@ -45,16 +47,16 @@ $.parse = markup => {
  * moment) does not support sending a request body because we don't (yet) need
  * that feature.
  */
-export function ajax(method, url, loader) {
+export function ajax(method, url, progress) {
   return new Promise((resolve, reject) => {
     const xhr = new XMLHttpRequest();
     xhr.onreadystatechange = () => {
       if (xhr.readyState < 4) return;
       if (xhr.status >= 200 && xhr.status < 300) {
-        if (loader) loader.stop();
+        if (progress) progress.stop();
         resolve(JSON.parse(xhr.responseText));
       } else {
-        if (loader) loader.error();
+        if (progress) progress.error();
         const err = new Error(`${xhr.status}: ${url}`);
         err.status = xhr.status;
         err.url = url;
@@ -67,26 +69,24 @@ export function ajax(method, url, loader) {
   });
 }
 
-export const toTag = (type, text) => {
-  // .type for license objects
-  // .name for maintainer objects
-  text = text.type || text.name || text;
-  if (!text) {
-    reportError(Error(`Undefined tag text (type=${type})`));
-    text='__undefined';
-  }
-  return type + '-' + text.replace(/\W/g, '_').toLowerCase();
-};
+export function tagify(type, tag) {
+  return type + '-' + tag.replace(/\W/g, '_').toLowerCase();
+}
 
-export const createTag = (type, text, count = 0) => {
+export function tagElement(el, type, ...tags) {
+  tags = tags.filter(t => t).map(t => tagify(type, t));
+  el.classList.add(...tags);
+}
+
+export function createTag(type, text, count = 0) {
   const el = document.createElement('div');
 
   el.classList.add('tag', type);
-  el.dataset.tag = toTag(type, text);
+  el.dataset.tag = tagify(type, text);
   el.title = el.innerText = count < 2 ? text : `${text}(${count})`;
 
   return el;
-};
+}
 
 
 export function entryFromKey(key) {

@@ -2,7 +2,8 @@ import validate from './pjv.js';
 import {ajax} from './util.js';
 
 function parseGithubPath(s) {
-  return /github.com\/([^/]+\/[^/?#.]+)/.test(s) && RegExp.$1;
+  s = /github.com\/([^/]+\/[^/?#]+)?/.test(s) && RegExp.$1;
+  return s && s.replace(/\.git$/, '');
 }
 
 export default class Module {
@@ -24,8 +25,12 @@ export default class Module {
   }
 
   get key() {
+    return Module.key(this.package.name, this.version);
+  }
+
+  get version() {
     const version = this.package.version;
-    return Module.key(this.package.name, version && (version.version || version));
+    return version && (version.version || version);
   }
 
   get githubPath() {
@@ -44,13 +49,13 @@ export default class Module {
       let search;
 
       try {
-        search = await ajax('GET', `https://registry.npmjs.org/-/v1/search?text=${this.package.name}&size=1`);
+        search = await ajax('GET', `https://api.npms.io/v2/package/${this.package.name}`);
       } catch (err) {
         console.error(err);
         return;
       }
 
-      const score = search.objects[0] && search.objects[0].score;
+      const score = search.score;
       this.package._scores = score ? {
         final: score.final,
         quality: score.detail.quality,

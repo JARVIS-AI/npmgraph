@@ -7,18 +7,22 @@
     <meta http-equiv="Content-Security-Policy" content="
       default-src
       'unsafe-eval' 'unsafe-inline' 'self'
-      http://notify.bugsnag.com/
-      https://api.github.com/
-      https://api.npmjs.org
-      https://cdnjs.cloudflare.com
-      https://fonts.gstatic.com https://fonts.googleapis.com
-      https://registry.npmjs.cf
-      https://registry.npmjs.org
-      https://sessions.bugsnag.com/
-      https://www.google-analytics.com/
-      https://www.googletagmanager.com/
-      https://www.gravatar.com/
-      d2wy8f7a9ursnm.cloudfront.net" />
+      d2wy8f7a9ursnm.cloudfront.net
+      *.doubleclick.net
+      notify.bugsnag.com
+      api.github.com
+      api.npmjs.org
+      api.npms.io
+      cdnjs.cloudflare.com
+      fonts.googleapis.com
+      fonts.gstatic.com
+      registry.npmjs.cf
+      registry.npmjs.org
+      sessions.bugsnag.com
+      www.google-analytics.com
+      www.googletagmanager.com
+      www.gravatar.com
+      " />
 
     <meta name="description" content="Graph / visualize of npm dependencies" />
     <meta name="keywords" content="visualize, visualization, graph, npm, npm modules, npm graph, npm licenses" />
@@ -31,7 +35,7 @@
 
   <body class="open">
     <div id="graph"></div>
-    <div id="load" style="display:none">
+    <div id="progress" style="display:none">
       <h2>Loading module dependencies</h2>
     </div>
 
@@ -53,7 +57,7 @@
       <div class="pane" id="pane-graph">
         <section>
           <h2>Tools<span class="material-icons"></span></h2>
-        <label><input type="checkbox" id="colorize" />Colorize by <a href="https://github.com/npms-io/npms-analyzer" target="_blank">npms.io score</a></label>
+          <label><input type="checkbox" id="colorize" />Colorize by <a href="https://github.com/npms-io/npms-analyzer" target="_blank">npms.io score</a></label>
         </section>
         <section class="dependencies">
           <h2>Dependencies<span class="material-icons"></span></h2>
@@ -111,11 +115,18 @@
 <script src="//d2wy8f7a9ursnm.cloudfront.net/v5/bugsnag.min.js"></script>
 <script>
 const ENV = {}; // Set in deploy
+const pageStart = Date.now();
 window.bugsnagClient = bugsnag({
   apiKey: '6a07b66124c696d0f685e1cf28312e41',
   appVersion: ENV.appVersion || undefined,
   releaseStage: ENV.releaseStage || 'development',
-  notifyReleaseStages: ['production']
+  notifyReleaseStages: ['production'],
+  beforeSend: function(report) {
+    report.updateMetaData('page', {
+      location: String(location),
+      pageTime: Date.now() - pageStart
+    });
+  }
 });
 </script>
 

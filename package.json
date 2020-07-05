@@ -1,6 +1,6 @@
 {
   "name": "npmgraph",
-  "version": "2.4.1",
+  "version": "2.4.10",
   "author": {
     "name": "Robert Kieffer",
     "url": "http://github.com/broofa",
@@ -21,13 +21,14 @@
     "type": "git"
   },
   "devDependencies": {
-    "babel-eslint": "^10.0.1",
-    "eslint": "^5.9.0",
-    "standard-version": "^4.4.0",
-    "static-server": "^2.2.1"
+    "babel-eslint": "*",
+    "eslint": "*",
+    "standard-version": "*",
+    "static-server": "*"
   },
   "scripts": {
-    "deploy": "ssh broofa.com \"cd npm.broofa.com && ./deploy.sh\"",
-    "open": "open -a \"Google Chrome\" http://localhost:9080"
+    "deploy": "npm test && ssh broofa.com \"cd npm.broofa.com && ./deploy.sh\"",
+    "open": "open -a \"Google Chrome\" http://localhost:9080",
+    "test": "eslint ."
   }
 }
